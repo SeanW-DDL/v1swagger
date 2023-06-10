@@ -1,0 +1,2114 @@
+swagger: "2.0"
+info:
+  description: "This is a fun API for Domino written by cool people."
+  version: "1.0.0"
+  title: "Domino Projects"
+host: "cloud-develop.domino.tech"
+schemes:
+- "https"
+securityDefinitions:
+  DominoApiKey:
+    type: "apiKey"
+    name: "X-Domino-Api-Key"
+    in: "header"
+  BearerAuthentication:
+    type: "apiKey"
+    in: "header"
+    name: "Authorization"
+security:
+- BearerAuthentication: []
+- DominoApiKey: []
+tags:
+- name: "project"
+  description: "Domino Projects"
+- name: "run"
+  description: "Runs"
+- name: "environment"
+  description: "Domino Environments"
+- name: "model"
+  description: "Domino Models"
+- name: "featureflag"
+  description: "Domino Feature Flags"
+- name: "launcher"
+  description: "Domino Launchers"
+- name: "centralConfig"
+  description: "Central config access"
+paths:
+  /version:
+    get:
+      tags:
+      - "environment"
+      summary: "Get deployment version info"
+      operationId: "getDominoVersion"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Success - Deployment version info"
+          schema:
+            $ref: "#/definitions/DominoVersion"
+  /v4/datasets/collections:
+    post:
+      tags:
+      - "project"
+      summary: "Create a Dataset collection"
+      operationId: "createDatasetCollection"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "newDataSetCollection"
+        in: "body"
+        description: "Parameters of the new Dataset collection"
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              description: "Name of the dataset collection"
+              type: "string"
+            description:
+              description: "Description of the dataset collection"
+              type: "string"
+            projectId:
+              type: "string"
+              description: "ProjectId of the dataset collection"
+      responses:
+        200:
+          description: "Success"
+          schema:
+            $ref: "#/definitions/DatasetCollection"
+  /project/{owner}/{projectName}:
+    get:
+      tags:
+      - "project"
+      summary: "Get a project by name"
+      operationId: "getProjectByName"
+      produces:
+      - "application/json"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      parameters:
+      - name: "owner"
+        in: "path"
+        description: "Username of owner of project"
+        required: true
+        type: "string"
+      - name: "projectName"
+        in: "path"
+        description: "Name of project"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Project"
+  /v1/projects/{owner}/{projectName}/{path}:
+    put:
+      tags:
+      - "project"
+      summary: "Upload file to project"
+      operationId: "uploadFile"
+      consumes:
+      - multipart/form-data
+      produces:
+      - "application/json"
+      parameters:
+      - name: "owner"
+        description: "Username of owner of project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "projectName"
+        description: "Name of the project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "path"
+        description: "Path to upload file contents to.  Forward-slash separated"
+        in: "path"
+        type: "string"
+        required: true
+      - name: contents
+        in: formData
+        type: file
+        description: "File contents to upload"
+      responses:
+        200:
+          description: "Metadata about the file uploaded"
+          schema:
+            $ref: "#/definitions/ApiFile"
+  /v1/projects/{ownerUsername}/{projectName}/commits:
+    get:
+      tags:
+      - "project"
+      summary: "Get commits for a project"
+      operationId: "getCommits"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "application/json"
+      parameters:
+      - name: "ownerUsername"
+        description: "Username of owner of project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "projectName"
+        description: "Name of the project"
+        in: "path"
+        type: "string"
+        required: true
+      responses:
+        200:
+          description: "Commit IDs of the project"
+          schema:
+            type: "array"
+            items:
+              type: "string"
+  /v1/projects/{username}/{projectName}/runs:
+    get:
+      tags:
+      - "project"
+      summary: "Get all runs for a project"
+      operationId: "getRuns"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "application/json"
+      parameters:
+      - name: "username"
+        description: "Username of owner of project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "projectName"
+        description: "Name of the project"
+        in: "path"
+        type: "string"
+        required: true
+      responses:
+        200:
+          description: "Info about project runs"
+          schema:
+            $ref: "#/definitions/ProjectRunsApiResponse"
+    post:
+      tags:
+      - "run"
+      summary: "Start a batch Run"
+      operationId: "startRun"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "username"
+        in: "path"
+        required: true
+        type: "string"
+        description: "The username of the owner of this project.  If not provided, then the calling user is the owner."
+      - name: "projectName"
+        description: "The name of the project to create"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "newRun"
+        in: "body"
+        description: "Parameters of Run to start"
+        required: true
+        schema:
+          type: object
+          properties:
+            command:
+              description: "Command to run, must have at least one argument"
+              type: "array"
+              items:
+                type: "string"
+            isDirect:
+              type: boolean
+            commitId:
+              type: "string"
+              description: "commit ID to use as the starting commit of the project, if not provided, uses the head commit"
+            title:
+              type: "string"
+              description: "optional human readable title for the run"
+            tier:
+              type: "string"
+              description: "hardware tier to use to start the run on; if not provided, uses the project default"
+            publishApiEndpoint:
+              type: boolean
+              description: "whether or not to automatically"
+            datasetConfig:
+              type: "string"
+              description: "dataset config to use when starting the run"
+      responses:
+        200:
+          description: "Run that was started"
+          schema:
+            $ref: "#/definitions/StartRunResponse"
+  /v1/projects/{ownerUsername}/{projectName}/runs/{runId}:
+    get:
+      tags:
+      - "run"
+      summary: "Get a run by ID"
+      operationId: "getRunById"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "application/json"
+      parameters:
+      - name: "ownerUsername"
+        description: "Username of owner of project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "projectName"
+        description: "Name of the project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "runId"
+        description: "ID of run to get"
+        in: "path"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Commit IDs of the project"
+          schema:
+            $ref: "#/definitions/Run"
+  /v1/projects/{ownerUsername}/{projectName}/run/{runId}/stdout:
+    get:
+      tags:
+      - "run"
+      summary: "Get logs for a Run"
+      operationId: "getLogsForRun"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "application/json"
+      parameters:
+      - name: "ownerUsername"
+        description: "Username of owner of project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "projectName"
+        description: "Name of the project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "runId"
+        description: "ID of run whose logs to retrieve"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "previewNumberOfLines"
+        description: "Most recent lines of the logs to retrieve.  If not provided, then all logs for the Run are retrieved."
+        in: "query"
+        required: false
+        type: "integer"
+      responses:
+        200:
+          description: "Run Logs"
+          schema:
+            $ref: "#/definitions/RunLogs"
+  /u/{ownerUsername}/{projectName}/run/stopFromApi/{runId}:
+    post:
+      tags:
+      - "run"
+      summary: "Stop a Run"
+      operationId: "stopRun"
+      consumes:
+      - "application/x-www-form-urlencoded"  # Hack
+      produces:
+      - "text/plain"
+      parameters:
+      - name: "ownerUsername"
+        in: "path"
+        required: true
+        type: "string"
+        description: "The username of the owner of this project"
+      - name: "projectName"
+        description: "The name of the project"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "runId"
+        description: "ID of Run to stop"
+        in: "path"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Run that was started"
+  /v1/projects/{ownerUsername}/{projectName}/runs/notebook:
+    post:
+      tags:
+      - "run"
+      summary: "Start a Notebook"
+      operationId: "startNotebook"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "ownerUsername"
+        in: "path"
+        required: true
+        type: "string"
+        description: "The username of the owner of this project."
+      - name: "projectName"
+        description: "The name of the project"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "StartNotebookRequest"
+        in: "body"
+        description: "Parameters of Notebook to start"
+        required: true
+        schema:
+          $ref: "#/definitions/StartNotebookRequest"
+      responses:
+        200:
+          description: "Metadata about Notebook Session that was started"
+          schema:
+            $ref: "#/definitions/StartRunResponse"
+  /u/{ownerUsername}/{projectName}/commitAndPushRepos/{runId}:
+    post:
+      tags:
+      - "run"
+      summary: "Commit and push to Git Repositories"
+      operationId: "commitAndPushRepos"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "ownerUsername"
+        in: "path"
+        required: true
+        type: "string"
+        description: "The username of the owner of this project."
+      - name: "projectName"
+        description: "The name of the project"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "runId"
+        description: "The name of the project"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "body"
+        in: "body"
+        schema:
+          $ref: '#/definitions/CommitAndPushRequest'
+      responses:
+        200:
+          description: "Result of commit and push"
+          schema:
+            $ref: "#/definitions/CommitAndPushResponse"
+  /u/{ownerUsername}/{projectName}/run/synchronizeRunWorkingDirectory/{runId}:
+    post:
+      tags:
+      - "run"
+      summary: "Synchronize working directory of a Run"
+      operationId: "synchronizeRunWorkingDirectory"
+      consumes:
+      - "application/x-www-form-urlencoded"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "ownerUsername"
+        in: "path"
+        required: true
+        type: "string"
+        description: "The username of the owner of this project."
+      - name: "projectName"
+        description: "The name of the project"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "runId"
+        description: "Run Id"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "uploadLocalChanges"
+        description: "Whether to upload changes from workspace to Domino"
+        in: "formData"
+        required: true
+        type: "string"  # This is required because the Form parsing on the Scala side is doesn't know how to interpret the Python serialization of a Boolean type
+        enum:
+        - "true"
+        - "false"
+      - name: "shouldSaveConflicts"
+        in: "formData"
+        required: true
+        type: "boolean"
+      - name: "commitMessage"
+        in: "formData"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Honestly I have no idea what this is returning"
+          schema:
+            $ref: "#/definitions/CommitAndPushResponse"
+  /u/{ownerUsername}/{projectName}/runs/{runId}:
+    patch:
+      tags:
+      - "run"
+      summary: "Update attributes of a Run"
+      operationId: "updateRun"
+      consumes:
+      - "application/json"
+      produces:
+      - "text/plain"
+      parameters:
+      - name: "ownerUsername"
+        in: "path"
+        required: true
+        type: "string"
+        description: "The username of the owner of this project."
+      - name: "projectName"
+        description: "The name of the project"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "runId"
+        description: "ID of Run"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "runAttributes"
+        description: "Attributes of Run to update"
+        in: "body"
+        required: true
+        schema:
+          type: object
+          properties:
+            title:
+              type: string
+            publiclyVisible:
+              type: boolean
+      responses:
+        200:
+          description: "A success message"
+  /v1/projects/{projectId}/defaultEnvironment:
+    post:
+      tags:
+      - "project"
+      summary: "Set the default Environment for a Project"
+      operationId: "setDefaultEnvironment"
+      consumes:
+      - "application/json"
+      produces:
+      - "text/plain"  # Actually this endpoint doesn't really return anything
+      parameters:
+      - name: "projectId"
+        in: "path"
+        required: true
+        type: "string"
+        description: "The ID of the Project"
+      - name: "setDefaultEnvironmentParameters"
+        in: "body"
+        description: "ID of Environment to set as the default for this Project"
+        required: true
+        schema:
+          type: object
+          properties:
+            environmentId:
+              type: string
+              description: "ID of Environment, can be either a V1 Environment or a V2 Environment"
+      responses:
+        200:
+          description: "[No content]"
+  /v1/environments:
+    get:
+      tags:
+      - "environment"
+      summary: "Get all Environments"
+      operationId: "getEnvironments"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Environments list"
+          schema:
+            $ref: "#/definitions/EnvironmentList"
+    post:
+      tags:
+      - "environment"
+      summary: "Create an Environment"
+      operationId: "createEnvironment"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "newEnv"
+        in: "body"
+        description: "Parameters of Environment to create"
+        required: true
+        schema:
+          type: object
+          required:
+            - base
+            - name
+            - description
+            - visibility
+            - clusterTypes
+          properties:
+            base:
+              type: object
+              description: "What to base this revision on.  If type is 'DefaultImage', the 'path' value must be provided and I actually don't know what that means.  If the type if 'CustomImage' is provided, 'path' must be provided and is an arbitrary fully-qualified Docker image to use as the base.  Finally, if type is 'Environment', then 'environmentRevisionId' must be provided and the Environment built from that revision will be used as the base for this revision."
+              properties:
+                path:
+                  type: string
+                environmentRevisionId:
+                  type: string
+                type:
+                  type: string
+                  enum:
+                  - "DefaultImage"
+                  - "Environment"
+                  - "CustomImage"
+            name:
+              type: string
+            description:
+              type: "string"
+            visibility:
+              type: string
+              enum:
+                - "Private"
+                - "Global"
+                - "Organization"
+            ownerId:
+              type: "string"
+            clusterTypes:
+              type: "array"
+              items:
+                type: string
+                enum:
+                  - Spark
+                  - Ray
+                  - Dask
+                  - MPI
+            skipFirstBuild:
+              type: boolean
+            addBaseDependencies:
+              type: boolean
+      responses:
+        200:
+          description: "Created Environment"
+          schema:
+            $ref: "#/definitions/Environment"
+  /v1/environments/defaultV2:
+    get:
+      tags:
+      - "environment"
+      summary: "Get Default Environments"
+      operationId: "getDefaultEnvironment"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "The system-wide default Environment"
+          schema:
+            $ref: "#/definitions/Environment"
+  /v1/environments/{envId}/revisions/{revisionId}:
+    get:
+      tags:
+      - "environment"
+      summary: "Get Environment Revision"
+      operationId: "getEnvironmentRevision"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      parameters:
+      - name: "envId"
+        in: "path"
+        description: "Environment ID"
+        required: true
+        type: string
+      - name: "revisionId"
+        in: "path"
+        description: "Environment Revision ID"
+        required: true
+        type: string
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Requested Environment Revision"
+          schema:
+            $ref: "#/definitions/EnvironmentRevision"
+  /v1/environments/{environmentId}/revisions/active:
+    get:
+      tags:
+      - "environment"
+      summary: "Get the active Environment Revision"
+      description: "Gets the active revision of an Environment. If not overriden by a user, the active revision is the most recently successfully built revision. However, the user can explicitly mark some other arbitrary revision as the active one."
+      operationId: "getActiveEnvironmentRevision"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      parameters:
+      - name: "environmentId"
+        in: "path"
+        description: "Environment ID"
+        required: true
+        type: string
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "The active revision of an Environment"
+          schema:
+            $ref: "#/definitions/EnvironmentRevision"
+  /v1/environments/{environmentId}/revisions/latest:
+    get:
+      tags:
+      - "environment"
+      summary: "Get the latest Environment Revision"
+      description: "Gets the latest revision of an Environment. Not necessarily the active revision of an Environment, i.e., if this latest revision failed to build."
+      operationId: "getLatestEnvironmentRevision"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      parameters:
+      - name: "environmentId"
+        in: "path"
+        description: "Environment ID"
+        required: true
+        type: string
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Latest Environment Revision"
+          schema:
+            $ref: "#/definitions/EnvironmentRevision"
+  /v1/environments/{envId}/revisions:
+    post:
+      tags:
+      - "environment"
+      summary: "Create Environment Revision"
+      operationId: "createEnvironmentRevision"
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "envId"
+        in: "path"
+        description: "Environment ID"
+        required: true
+        type: string
+      - name: "newEnvironmentRevision"
+        in: "body"
+        required: true
+        schema:
+          type: object
+          properties:
+            base:
+              type: object
+              description: "What to base this revision on.  If type is 'DefaultImage', the 'path' value must be provided and I actually don't know what that means.  If the type if 'CustomImage' is provided, 'path' must be provided and is an arbitrary fully-qualified Docker image to use as the base.  Finally, if type is 'Environment', then 'environmentRevisionId' must be provided and the Environment built from that revision will be used as the base for this revision."
+              properties:
+                path:
+                  type: string
+                environmentRevisionId:
+                  type: string
+                type:
+                  type: string
+                  enum:
+                  - "DefaultImage"
+                  - "Environment"
+                  - "CustomImage"
+            dockerfileInstructions:
+              type: string
+            preSetupScript:
+              type: string
+            postSetupScript:
+              type: string
+            preRunScript:
+              type: string
+            postRunScript:
+              type: string
+            dockerArguments:
+              type: array
+              items:
+                type: string
+            shouldUseVPN:
+              type: boolean
+            summary:
+              type: string
+            username:
+              type: string
+            buildEnvironmentVariables:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  value:
+                    type: string
+            properties:
+              type: string
+            noCache:
+              type: boolean
+            clusterTypes:
+              type: array
+              items:
+                type: string
+                enum:
+                  - Spark
+                  - Ray
+                  - Dask
+                  - MPI
+            isRestricted:
+              type: boolean
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "ID of the created Environment Revision"
+          schema:
+            type: string
+  /environments/{environmentId}/archive:
+    post:
+      tags:
+      - "environment"
+      summary: "Archive an Environment"
+      operationId: "archiveEnvironment"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      parameters:
+      - name: "environmentId"
+        in: "path"
+        description: "Environment ID"
+        required: true
+        type: string
+      produces:
+      - "text/html"
+      responses:
+        303:
+          description: "Redirect to environments"
+          schema:
+            type: string
+  /environments/{environmentId}/revisions/{revisionId}/build/{buildId}/fetchBuildLogsSince:
+    get:
+      tags:
+      - "environment"
+      summary: "Get logs for Environment Revision build"
+      operationId: "getRevisionBuildLogs"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "application/html"  # Hijacking a UI route so enable testing
+      parameters:
+      - name: "environmentId"
+        in: "path"
+        description: "Environment ID"
+        required: true
+        type: string
+      - name: "revisionId"
+        in: "path"
+        description: "Environment Revision ID"
+        required: true
+        type: string
+      - name: "buildId"
+        in: "path"
+        description: "Environment Revision ID"
+        required: true
+        type: string
+      responses:
+        200:
+          description: "Build logs"
+          schema:
+            type: string
+  /v1/models:
+    post:
+      tags:
+      - "model"
+      summary: "Create a Model"
+      operationId: "createModel"
+      produces:
+      - "application/json"
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "createModelRequest"
+        in: "body"
+        description: "Parameters of Model to create"
+        required: true
+        schema:
+          type: object
+          required:
+            - "projectId"
+            - "name"
+            - "description"
+            - "file"
+            - "function"
+          properties:
+            projectId:
+              type: string
+              description: "ID of Project from which to publish the Model"
+            name:
+              type: string
+              description: "Human readable name of Model"
+            description:
+              type: string
+              description: "Longer description of the model"
+            file:
+              type: string
+              description: "Name of file in project that the Model will be sourced from"
+            function:
+              type: string
+              description: "Name of function in the sourced file of the Project that the Model will invoke"
+            excludeFiles:
+              type: array
+              items:
+                type: string
+              description: "Array of files in the project to exclude from the published Model. If empty or not provided, all files in the Project will be included in the published Model"
+            environmentId:
+              type: string
+              description: "If provided, overrides the Environment used for this new Model.  Otherwise, uses the global system default Environment."
+            environmentVariables:
+              type: array
+              description: "Environment Variables for this Model"
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  value:
+                    type: string
+      responses:
+        200:
+          description: "Created Model"
+          schema:
+            $ref: "#/definitions/CreatedModel"
+  /v1/models/{modelId}/url:
+    get:
+      tags:
+      - "model"
+      summary: "Get URL of model"
+      operationId: getModelUrl
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "text/plain"
+      parameters:
+      - name: modelId
+        type: string
+        required: true
+        in: path
+      responses:
+        200:
+          description: "URL of the model"
+          schema:
+            type: string
+  /v1/models/{modelId}/versions:
+    get:
+      tags:
+      - "model"
+      summary: "Get all versions of the given Model"
+      operationId: "getVersionsForModel"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "application/json"
+      parameters:
+      - name: "modelId"
+        description: "ID of Model"
+        in: "path"
+        type: "string"
+        required: true
+      responses:
+        200:
+          description: "All revisions of the Model"
+          schema:
+            $ref: "#/definitions/ModelVersions"
+  /models/{modelId}/activeStatus:
+    get:
+      tags:
+      - "model"
+      summary: "Get status info"
+      operationId: "retrieveActiveVersionStatus"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "application/json"
+      parameters:
+      - name: "modelId"
+        description: "ID of Model"
+        in: "path"
+        type: "string"
+        required: true
+      responses:
+        200:
+          description: ""
+          schema:
+            $ref: "#/definitions/ModelVersionStatus"
+  /v1/models/{modelId}/versions/{modelVersionId}/destroy:
+    post:
+      tags:
+      - "model"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "application/json"
+      summary: "Destroy (stop) the deployment associated with the given model version"
+      operationId: "destroyModelVersion"
+      parameters:
+      - name: "modelId"
+        description: "ID of Model"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "modelVersionId"
+        description: "ID of Model Version"
+        in: "path"
+        type: "string"
+        required: true
+      responses:
+        200:
+          description: "If destroy has begun successfully, the version of the model destroyed"
+          schema:
+            $ref: "#/definitions/OkResponseModelVersion"
+  /models/{modelId}/archive:
+    post:
+      tags:
+      - "model"
+      summary: "Archive a Model"
+      operationId: "archiveModel"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      parameters:
+      - name: "modelId"
+        in: "path"
+        description: "Model ID"
+        required: true
+        type: string
+      produces:
+      - "application/html"
+      responses:
+        303:
+          description: "Redirect to models"
+          schema:
+            type: string
+  /v1/builds/{buildId}:
+    get:
+      tags:
+      - "model"
+      - "environment"
+      summary: "Get a Build by ID"
+      operationId: "getBuildById"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "application/json"
+      parameters:
+      - name: "buildId"
+        description: "ID of Build"
+        in: "path"
+        type: "string"
+        required: true
+      responses:
+        200:
+          description: "The Build requested"
+          schema:
+            $ref: "#/definitions/Build"
+  /u/{ownerUsername}/{projectName}/runLaunchers:
+    post:
+      tags:
+      - "launcher"
+      summary: "Create a Launcher"
+      operationId: "createLauncher"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "ownerUsername"
+        description: "Username of owner of project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "projectName"
+        description: "Name of the project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "newLauncher"
+        in: "body"
+        description: "New Launcher definition"
+        required: true
+        schema:
+          $ref: "#/definitions/Launcher"
+      responses:
+        200:
+          description: "New Launcher"
+          schema:
+            $ref: "#/definitions/Launcher"
+  /u/{ownerUsername}/{projectName}/runLaunchers/{launcherId}:
+    get:
+      tags:
+      - "launcher"
+      summary: "Create a Launcher"
+      operationId: "getLauncher"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "ownerUsername"
+        description: "Username of owner of project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "projectName"
+        description: "Name of the project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "launcherId"
+        description: "ObjectId of Launcher"
+        in: "path"
+        type: string
+        required: true
+      responses:
+        200:
+          description: "Existing Launcher"
+          schema:
+            $ref: "#/definitions/Launcher"
+        404:
+          description: "Launcher not found"
+    delete:
+      tags:
+      - "launcher"
+      summary: "Delete a Launcher"
+      operationId: "deleteLauncher"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "ownerUsername"
+        description: "Username of owner of project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "projectName"
+        description: "Name of the project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "launcherId"
+        description: "ObjectId of Launcher"
+        in: "path"
+        required: true
+        type: string
+      responses:
+        200:
+          description: "Deleted Launcher"
+          schema:
+            $ref: "#/definitions/Launcher"
+        404:
+          description: "Launcher not found"
+    put:
+      tags:
+      - "launcher"
+      summary: "Update a Launcher"
+      operationId: "updateLauncher"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "ownerUsername"
+        description: "Username of owner of project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "projectName"
+        description: "Name of the project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "launcherId"
+        description: "ObjectId of Launcher"
+        in: "path"
+        required: true
+        type: string
+      - name: "updatedLauncher"
+        in: "body"
+        description: "Updated Launcher definition"
+        required: true
+        schema:
+          $ref: "#/definitions/Launcher"
+      responses:
+        200:
+          description: "Updated Launcher"
+          schema:
+            $ref: "#/definitions/Launcher"
+  /u/{ownerUsername}/{projectName}/runLaunchers/{launcherId}/start:
+    post:
+      tags:
+      - "launcher"
+      summary: "Start a Launcher"
+      operationId: "startLauncher"
+      consumes:
+      - "application/x-www-form-urlencoded"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "ownerUsername"
+        description: "Username of owner of project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "projectName"
+        description: "Name of the project"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "launcherId"
+        description: "ObjectId of Launcher"
+        in: "path"
+        required: true
+        type: string
+      responses:
+        303:
+          description: "Redirect to run; see Location header"
+          headers:
+            location:
+              type: string
+              description: "Run page"
+        200:
+          description: "Normally this should not happen"
+        500:
+          description: "Error starting launcher"
+  /featureflags/{username}/{flagName}:
+    get:
+      tags:
+      - "featureflag"
+      summary: "Get whether the given flag is enabled for the given user"
+      description: ""
+      operationId: "getFeatureFlagValue"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      produces:
+      - "text/plain"
+      parameters:
+      - name: "username"
+        description: "User for whom to check the flag value"
+        in: "path"
+        type: "string"
+        required: true
+      - name: "flagName"
+        description: "Fully qualified feature flag name, i.e., 'featureflags.domain.FeatureFlags$ShortLived$EnvironmentsPreviewEnabled$'"
+        in: "path"
+        type: "string"
+        required: true
+      responses:
+        200:
+          description: "Whether the Flag is enabled"
+          schema:
+            type: boolean
+  /v1/admin/centralConfig/{key}:
+    get:
+      tags:
+      - "centralConfig"
+      summary: "Get specific Central Config value"
+      operationId: "getValue"
+      produces:
+      - "application/json"
+      parameters:
+        - name: "key"
+          in: path
+          required: true
+        - name: "namespace"
+          in: query
+          required: false
+        - name: name
+          in: query
+          required: false
+      responses:
+        200:
+          description: "Value if found"
+          schema:
+            type: string
+        404:
+          description: "Setting not found"
+  /account/ssh:
+    get:
+      tags:
+      - "account"
+      summary: "List SSH keys"
+      operationId: "listSshKeys"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "SSH keys defined"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/SshKey"
+    post:
+      tags:
+      - "account"
+      summary: "Create SSH key"
+      operationId: "createSshKey"
+      consumes:
+      - "application/x-www-form-urlencoded" # A dirty rotten hack because our server 401s if you send it Content-Type: application/json for some inexplicable reason
+      parameters:
+      - name: "name"
+        description: "name of SSH key"
+        in: formData
+        type: string
+        required: true
+      - name: "key"
+        description: "SSH public key"
+        in: formData
+        type: string
+        required: true
+      responses:
+        303:
+          description: "Redirecting (success or failure)"
+  /account/ssh/{thumbprint}:
+    delete:
+      tags:
+      - "account"
+      summary: "Delete SSH key identified by thumbprint"
+      operationId: "removeSshKey"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "thumbprint"
+        in: "path"
+        required: true
+        type: "string"
+        description: "thumbprint identifying the SSH key to remove"
+      responses:
+        404:
+          description: "SSH key with this fingerprint not found"
+        200:
+          description: "SSH key successfully deleted"
+  /v4/jobs/{jobId}/logs:
+    get:
+      summary: Get the logs of a job
+      operationId: getLogs
+      responses:
+        '200':
+          description: |
+            This is added to support pre-4.0 endpoint (replaced in 4.0
+            with get_logs_with_problem_suggestions)
+            Scenarios:<br>
+            If the log retriever got NO logs, then the client should expect
+              * an empty `logContent` array
+
+            from the returned LogSet.<br><br>
+            If the log retriever was done fetching ALL of the logs, then the client should expect
+              * `isComplete = true`
+              * `paginationFilter.limit = 0`
+
+            from the returned LogSet.<br><br>
+            If the log retriever was NOT done fetching all of the logs, then the client should expect
+              * `isComplete = false`
+              * `paginationFilter` encoding the next `offset` or `latestTimeNano` of the last log line fetched by the retriever.
+
+            from the returned LogSet.<br><br>
+          schema:
+            "$ref": "#/definitions/domino.jobs.interface.LogSet"
+        '400':
+          "$ref": "#/responses/BadRequest"
+        '401':
+          "$ref": "#/responses/Unauthorized"
+        '403':
+          "$ref": "#/responses/Forbidden"
+        '500':
+          "$ref": "#/responses/InternalError"
+        '501':
+          "$ref": "#/responses/NotImplemented"
+      parameters:
+      - in: path
+        name: jobId
+        pattern: "^[0-9a-f]{24}$"
+        type: string
+        required: true
+      - in: query
+        name: logType
+        required: false
+        type: string
+        enum:
+        - console
+        - stdout
+        - stderr
+        - stdoutstderr
+        - prepareoutput
+        default: console
+        description: |
+          Types of logs:
+           * `console` - This is the default if the value is not provided. All logs lines displayed in the job's runtime environment.
+           * `stdout` - Log lines displayed in the stderr of the job's runtime environment.
+           * `stderr` - Log lines displayed in the stderr of the job's runtime environment.
+           * `stdoutstderr` - Interleaved stdout and stderr.
+           * `prepareoutput` - Log lines generated by the environment preparing the job.
+      - in: query
+        name: limit
+        required: false
+        type: number
+        default: 10000
+        description: Max number of log lines to fetch. Will be overridden by the configuration's
+          limit if this value exceeds the configuration's limit, or if this value is
+          not provided.
+      - in: query
+        name: offset
+        required: false
+        type: number
+        default: 0
+        description: The index of the current body of logs to start fetching from. 0
+          by default and typically won't be used for a timestamp-based offset log fetching
+          strategy.
+      - in: query
+        name: latestTimeNano
+        required: false
+        type: string
+        default: '0'
+        description: The epoch time in nanoseconds to start fetching from, such as "1543538813745986325".
+          "0" by default and will typically be used for a timestamp-based offset log
+          fetching strategy.
+      tags:
+      - Logs
+definitions:
+  ApiFile:
+    type: "object"
+    properties:
+      path:
+        type: "string"
+        description: "Path of the file, forward-slash separated"
+      lastModified:
+        type: "integer"
+        description: "Modification date of file, expressed in milliseconds since Unix epoch"
+      size:
+        type: "integer"
+        description: "Size of the file in bytes"
+      key:
+        type: "string"
+        description: "Hash of file contents"
+      rawUrl:
+        type: "string"
+        description: "???"
+  RunLogs:
+    type: "object"
+    properties:
+      setup:
+        type: "string"
+        description: "Logs related to the preparation of the Run"
+      stdout:
+        type: "string"
+        description: "Logs emitted during the Run. Misleadingly named because this field also includes stderr of the Run."
+  DatasetCollection:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+      name:
+        type: "string"
+      description:
+        type: "string"
+      dataSets:
+        type: array
+        items:
+          type: "string"
+      metadata:
+        type: "object"
+        properties:
+          labels:
+            type: "object"
+          creationDateMillis:
+            type: "integer"
+      tags:
+        type: "object"
+  Project:
+    type: "object"
+    properties:
+      _id:
+        type: "string"
+      ownerId:
+        type: "string"
+      name:
+        type: "string"
+      description:
+        type: "string"
+      created:
+        type: "integer"
+      isArchived:
+        type: "boolean"
+      executionQueue:
+        type: "string"
+      shouldAlertOnFailure:
+        type: "boolean"
+      centsPerMinute:
+        type: "integer"
+      projectVisibility:
+        type: "string"
+        enum:
+        - "Public"
+        - "Indexable"
+        - "Private"
+  Run:
+    type: "object"
+    required:
+      - "status"
+    properties:
+      id:
+        type: string
+      projectId:
+        type: string
+        description: "Project ID this Run is a part of"
+      number:
+        type: integer
+      startingUserId:
+        type: string
+      queued:
+        type: integer
+      started:
+        type: integer
+      completed:
+        type: integer
+      status:
+        type: string
+      commitId:
+        type: string
+      executor:
+        type: string
+      startingScheduledRunId:
+        type: string
+      outputCommitId:
+        type: string
+      title:
+        type: string
+      publiclyVisible:
+        type: boolean
+      isArchived:
+        type: boolean
+      postProcessedTimestamp:
+        type: integer
+      diagnosticStatistics:
+        type: object
+        properties:
+          data:
+            type: array
+            items:
+              type: object
+          isError:
+            type: boolean
+      isCompleted:
+        type: boolean
+      hardwareTierId:
+        type: string
+      environmentId:
+        type: string
+      environmentRevisionId:
+        type: string
+      repositories:
+        type: array
+        items:
+          type: object
+      notebookName:
+        type: string
+      runQueueingInformation:
+        type: string
+      datasetMounts:
+        type: array
+        items:
+          type: object
+      command:
+        type: string
+  DominoVersion:
+    type: object
+    properties:
+      name:
+        type: string
+      version:
+        type: string
+        description: "The actual Domino Version"
+      scalaVersion:
+        type: string
+      sbtVersion:
+        type: string
+      buildNumber:
+        type: string
+      gitCommit:
+        type: string
+  Environment:
+    type: object
+    properties:
+      _id:
+        type: string
+      ownerId:
+        type: string
+        description: "The ID of the owner of this environment. Null if not a Global Environment."
+      name:
+        type: string
+      description:
+        type: string
+      visibility:
+        type: string
+        enum:
+          - "Global"
+          - "Private"
+          - "Organization"
+      isArchived:
+        type: "boolean"
+      activeRevisionId:
+        type: string
+  EnvironmentRevision:
+    type: object
+    properties:
+      _id:
+        type: string
+      environmentId:
+        type: string
+      metadata:
+        type: object
+        properties:
+          number:
+            type: integer
+          authorId:
+            type: string
+            description: "ID of User who created this revision"
+          created:
+            type: integer
+            description: "When this revision was created, in milliseconds since Unix epoch"
+          summary:
+            type: string
+          buildId:
+            type: object
+            properties:
+              value:
+                type: string
+          dockerImageName:
+            type: object
+            properties:
+              repository:
+                type: string
+              tag:
+                type: string
+      definition:
+        type: object
+        properties:
+          dockerfileInstructions:
+            type: string
+          dockerImage:
+            type: string
+          preSetupScript:
+            type: string
+          postSetupScript:
+            type: string
+          preRunScript:
+            type: string
+          postRunScript:
+            type: string
+          dockerArguments:
+            type: array
+            items:
+              type: string
+          shouldUseVPN:
+            type: boolean
+          baseEnvironmentRevisionId:
+            type: string
+          username:
+            type: string
+          buildEnvironmentVariablesBlobKey:
+            type: object
+          workspacesProperties:
+            type: object
+            properties:
+              raw:
+                type: string
+  Model:
+    type: object
+    properties:
+      _id:
+        type: string
+      name:
+        type: string
+      description:
+        type: string
+      isArchived:
+        type: "boolean"
+      replicas:
+        type: "integer"
+      metadata:
+        type: object
+        properties:
+          createdBy:
+            type: string
+            description: "ID of User who created this Model"
+          created:
+            type: integer
+            description: "When this Model was created, in milliseconds since Unix epoch"
+          lastInvokerQuery:
+            type: string
+            description: "Most recent query used in the model tester"
+      collaboratorSettings:
+        type: object
+      accessConfiguration:
+        type: object
+        properties:
+          isPublic:
+            type: boolean
+          accessTokens:
+            type: array
+            items:
+              type: object
+              properties:
+                _id:
+                  type: string
+                name:
+                  type: string
+                created:
+                  type: integer
+                  description: "When this token was added, in milliseconds since Unix epoch"
+                createdBy:
+                  type: string
+                  description: "ID of User who created this Access Token"
+                comment:
+                  type: string
+                token:
+                  type: object
+                  properties:
+                    value:
+                      type: string
+  Launcher:
+    type: object
+    properties:
+      id:
+        type: string
+      projectId:
+        type: string
+      name:
+        type: string
+      description:
+        type: string
+      command:
+        type: string
+      valuePassType:
+        type: string
+        enum:
+        - CommandLineSubstitutionPass
+        - JSONObjectPass
+      parameters:
+        type: array
+        items:
+          $ref: "#/definitions/LauncherParameter"
+      hardwareTierId:
+        type: string
+    required:
+    - projectId
+    - name
+    - description
+    - command
+    - valuePassType
+    - parameters
+  LauncherParameter:
+    type: object
+    properties:
+      name:
+        type: string
+      description:
+        type: string
+      parameterType:
+        type: string
+      allowedValues:
+        type: array
+        items:
+          type: object
+          properties:
+            value:
+              type: string
+            description:
+              type: string
+          required:
+          - value
+      defaultValue:
+        type: string
+      shouldQuoteValue:
+        type: boolean
+    required:
+    - name
+    - description
+    - parameterType
+    - allowedValues
+    - shouldQuoteValue
+  ModelVersions:
+    type: object
+    properties:
+      data:
+        type: array
+        items:
+          $ref: "#/definitions/ModelVersion"
+  ModelVersion:
+    type: object
+    properties:
+      _id:
+        type: string
+      modelId:
+        type: string
+      projectId:
+        type: string
+      commitId:
+        type: string
+      file:
+        type: string
+      function:
+        type: string
+      excludeFiles:
+        type: array
+        items:
+          type: string
+      environmentRevisionId:
+        type: string
+      metadata:
+        type: object
+        properties:
+          createdBy:
+            type: string
+            description: "ID of User who created this revision"
+          created:
+            type: integer
+            description: "When this revision was created, in milliseconds since Unix epoch"
+          number:
+            type: integer
+            description: "Human readable ID of this revision"
+          summary:
+            type: string
+          builds:
+            type: array
+            items:
+              type: object
+              properties:
+                buildId:
+                  type: object
+                  properties:
+                    value:
+                      type: string
+                slug:
+                  type: object
+                  properties:
+                    image:
+                      type: object
+                      properties:
+                        repository:
+                          type: string
+                        tag:
+                          type: string
+  CommitAndPushRequest:
+    type: object
+    properties:
+      commits:
+        type: array
+        items:
+          $ref: "#/definitions/Commit"
+  CommitAndPushResponse:
+    type: object
+    properties:
+      succeeded:
+        type: boolean
+      message:
+        type: string
+  Commit:
+    type: object
+    properties:
+      repoName:
+        type: string
+      commitMessage:
+        type: string
+  Build:
+    type: object
+    properties:
+      created:
+        type: integer
+        description: "When Build was created, in milliseconds from Unix epoch"
+      id:
+        type: string
+      image:
+        type: object
+        properties:
+          repository:
+            type: string
+          tag:
+            type: string
+      registry:
+        type: string
+      metadata:
+        type: array
+        items:
+          type: object
+      sourceUrl:
+        type: string
+      status:
+        type: string
+        enum:
+          - "Unknown"
+          - "Queued"
+          - "Starting"
+          - "Pulling"
+          - "Building"
+          - "Pushing"
+          - "Succeeded"
+          - "Failed"
+      imageSizeLimitsInBytes:
+        type: integer
+        description: "If specified, the size limit for this build.  If null, there is not size limit for this build."
+  CreatedModel:
+    type: object
+    properties:
+      data:
+        $ref: "#/definitions/Model"
+  EnvironmentList:
+    type: object
+    properties:
+      objectType:
+        type: array
+        items:
+          type: string
+        description: The type of object the API returned.
+      data:
+        type: array
+        items:
+          $ref: "#/definitions/Environment"
+  HardwareTiersCapacity:
+    type: object
+    properties:
+      hardwareTiers:
+        type: object
+        additionalProperties:
+          type: object
+          properties:
+            currentNumberOfExecutors:
+              type: integer
+            maximumNumberOfExecutors:
+              type: integer
+            numberOfCurrentlyExecutingRuns:
+              type: integer
+            numberOfQueuedRuns:
+              type: integer
+            maximumConcurrentRuns:
+              type: integer
+            availableCapacityWithoutLaunching:
+              type: integer
+            maximumAvailableCapacity:
+              type: integer
+            capacityLevel:
+              type: string
+              enum:
+              - "CanExecuteWithCurrentInstances"
+              - "RequiresLaunchingInstance"
+              - "Full"
+
+  domino.jobs.interface.LogSet:
+    properties:
+      logContent:
+        type: array
+        items:
+          "$ref": "#/definitions/domino.jobs.interface.LogContent"
+      isComplete:
+        type: boolean
+      pagination:
+        "$ref": "#/definitions/domino.jobs.interface.PaginationFilter"
+    required:
+    - logContent
+    - isComplete
+    - pagination
+  domino.jobs.interface.LogContent:
+    properties:
+      timestamp:
+        type: integer
+        format: epoch
+      logType:
+        type: string
+        enum:
+        - stdout
+        - stderr
+        - prepareoutput
+        - complete
+      log:
+        type: string
+      size:
+        type: integer
+        format: int64
+    required:
+    - timestamp
+    - logType
+    - log
+    - size
+  domino.jobs.interface.PaginationFilter:
+    properties:
+      limit:
+        type: integer
+        format: int32
+      offset:
+        type: integer
+        format: int32
+      latestTimeNano:
+        type: string
+    required:
+    - limit
+    - offset
+  OkResponseModelVersion:
+    type: object
+    properties:
+      data:
+        $ref: "#/definitions/ModelVersion"
+  ModelVersionStatus:
+    type: object
+    properties:
+      modelId:
+        type: string
+      modelVersionId:
+        type: object
+        properties:
+          value:
+            type: string
+      status:
+        type: string
+      operations:
+        type: array
+        items:
+          type: object
+          properties:
+            startTime:
+              type: integer
+            endTime:
+              type: integer
+            lastUpdated:
+              type: integer
+            sagaDescription:
+              type: string
+            shortStateDescription:
+              type: string
+            longStateDescription:
+              type: string
+            isFailure:
+              type: boolean
+      lastOperation:
+        type: object
+        properties:
+          startTime:
+            type: integer
+          endTime:
+            type: integer
+          lastUpdated:
+            type: integer
+          sagaDescription:
+            type: string
+          shortStateDescription:
+            type: string
+          longStateDescription:
+            type: string
+          isFailure:
+            type: boolean
+      isPending:
+        type: boolean
+
+  ProjectRunsApiResponse:
+    type: object
+    properties:
+      objectType:
+        type: "string"
+        description: "Type of object returned by the uri"
+      uri:
+        type: "string"
+        description: "The uri"
+      data:
+        type: "array"
+        description: "Array of project runs"
+        items:
+          $ref: "#/definitions/Run"
+  StartNotebookRequest:
+    type: object
+    properties:
+      notebookType:
+        type: string
+        enum:
+        - RStudio
+        - Jupyter
+        - H2o
+        - Zeppelin
+        - OpenRefine
+        - PySpark
+        - Scala
+        - Rodeo
+        - Beaker
+        - App
+  StartRunResponse:
+    type: object
+    properties:
+      runId:
+        type: "string"
+        description: "ID of run started"
+      message:
+        type: "string"
+        description: "Human readable message for the run for some reason"
+  SshKey:
+    type: object
+    properties:
+      name:
+        type: string
+      fingerprint:
+        type: string
+      key:
+        type: string
+      dateAdded:
+        type: integer
+        format: epoch
+    required:
+      - "name"
+      - "fingerprint"
+      - "key"
+      - "dateAdded"
+  domino.api.ErrorResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        description: "Error message"
+responses:
+  BadRequest:
+    description: "The server could not understand the request due to malformed syntax"
+    schema:
+      $ref: "#/definitions/domino.api.ErrorResponse"
+  NotFound:
+    description: "The server could not find the requested resource"
+    schema:
+      $ref: "#/definitions/domino.api.ErrorResponse"
+  Unauthorized:
+    description: "The current user cannot perform this operation because they are not logged in"
+    schema:
+      $ref: "#/definitions/domino.api.ErrorResponse"
+  Forbidden:
+    description: "The current user is not authorized to perform this operation"
+    schema:
+      $ref: "#/definitions/domino.api.ErrorResponse"
+  InternalError:
+    description: "An internal error prevented the server from performing this action"
+    schema:
+      $ref: "#/definitions/domino.api.ErrorResponse"
+  NotImplemented:
+    description: "The server has not yet implemented this functionality"
+    schema:
+      $ref: "#/definitions/domino.api.ErrorResponse"
