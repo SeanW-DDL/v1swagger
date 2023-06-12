@@ -3,7 +3,7 @@ info:
   description: "This is a fun API for Domino written by cool people."
   version: "1.0.0"
   title: "Domino Projects"
-host: "cloud-develop.domino.tech"
+host: "qe56aws14788.quality-team-sandbox.domino.tech"
 schemes:
 - "https"
 securityDefinitions:
